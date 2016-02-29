@@ -16,6 +16,11 @@ end
 
 appendline(path, line) = line > 0 ? "$path:$line" : path
 
+findpath(path) =
+  isabspath(path) || isuntitled(path) ?
+  (path, path) :
+  (normpath("base/$path"), basepath(path))
+
 baselink(path, line) =
   path == "no file" ? span(".fade", path) :
   isabspath(path) || isuntitled(path) ?
@@ -63,4 +68,21 @@ end
   r(x) = render(i, x, options = options)
   Tree(Text("$(m.name) has $(length(ms)) method$(length(ms)==1?"":"s"):"),
        [table(".methods", [tr(td(c(r(a))), td(c(r(b)))) for (a, b) in map(view, ms)])])
+end
+
+function view_obj(m::Method)
+  tv, decls, file, line = Base.arg_decl_parts(m)
+  signature = [string(x, isempty(T) ? "" : "::", stripparams(T)) for (x, T) in decls]
+  signature = string(m.func.code.name, "(", join(signature, ", "), ")")
+  signature, findpath(string(file))..., line
+end
+
+function method_obj(ms)
+  isempty(ms) && return []
+  [d(
+    :text => signature,
+    :dispfile => dispfile,
+    :file => file,
+    :line => line - 1 # Atom starts counting at 0, Julia at 1
+  ) for (signature, dispfile, file, line) in map(view_obj, ms)]
 end
